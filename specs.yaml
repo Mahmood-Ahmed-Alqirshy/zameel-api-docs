@@ -1,0 +1,3109 @@
+openapi: 3.0.3
+info:
+  title: زميل
+  version: 1.0.0
+servers:
+  - url: http://localhost/api
+    description: Default Environment
+security:
+  - BearerAuth: []
+paths:
+  /api/login:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                deviceName:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Unauthenticated
+        '422':
+          description: Validation error
+      summary: Create user token
+      tags:
+        - Auth
+  /api/register:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                password_confirmation:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+        '401':
+          description: Unauthenticated
+        '422':
+          description: Validation error
+      summary: Create user
+      tags:
+        - Auth
+  /api/logout:
+    post:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: logged out
+        '401':
+          description: Unauthenticated
+      summary: Logout
+      tags:
+        - Auth
+  /api/verify-email:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                otp:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Email verified.
+        '401':
+          description: Unauthenticated
+        '400':
+          description: Email already verified or OTP issue.
+        '422':
+          description: Validation error
+      summary: Verify email
+      tags:
+        - Auth
+  /api/email/verification-notification:
+    post:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Email Sent.
+        '401':
+          description: Unauthenticated
+        '400':
+          description: Email already verified or OTP issue.
+        '502':
+          description: Failed To Send Email.
+        '422':
+          description: Validation error
+      summary: Send verification notification
+      tags:
+        - Auth
+  /api/forgot-password:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Email sent.
+        '502':
+          description: Failed To Send Email.
+        '422':
+          description: Validation error
+      summary: Send reset link
+      tags:
+        - Auth
+  /api/reset-password:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                token:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                password_confirmation:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  message:
+                    type: string
+                    example: Password reset.
+        '500':
+          description: Password reset failed.
+        '422':
+          description: Validation error
+      summary: Reset password
+      tags:
+        - Auth
+  /api/posts:
+    post:
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - files
+          name: include
+          in: query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Post'
+                - type: object
+                  properties:
+                    attachment:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        file:
+                          type: string
+                          description: Can't exist with images property
+                        images:
+                          type: array
+                          items:
+                            type: string
+                          description: Can't exist with file property
+                      nullable: true
+                
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PostResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create post
+      tags:
+        - Post
+  /api/posts/search:
+    post:
+      parameters:
+        - schema:
+            type: string
+            enum:
+              - files
+          name: include
+          in: query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scopes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        enum:
+                          - student
+                          - academic
+                          - admin
+                      parameters:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                      - name
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - created_at
+                          - subject_id
+                          - user_id
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - created_at
+                                - subject_id
+                                - user_id
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for posts
+      tags:
+        - Post
+  /api/posts/{post}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: post
+          in: path
+          required: true
+        - schema:
+            type: string
+            enum:
+              - files
+          name: include
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PostResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get post
+      tags:
+        - Post
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: post
+          in: path
+          required: true
+        - schema:
+            type: string
+            enum:
+              - files
+          name: include
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PostResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete post
+      tags:
+        - Post
+  /api/colleges:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/College'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CollegeResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create college
+      tags:
+        - College
+    get:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CollegeResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of colleges
+      tags:
+        - College
+  /api/colleges/search:
+    post:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CollegeResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for colleges
+      tags:
+        - College
+  /api/colleges/{college}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: college
+          in: path
+          required: true
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CollegeResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get college
+      tags:
+        - College
+    patch:
+      parameters:
+        - schema:
+            type: integer
+          name: college
+          in: path
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/College'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CollegeResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Update college
+      tags:
+        - College
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: college
+          in: path
+          required: true
+        - schema:
+            type: boolean
+          name: force
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CollegeResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete college
+      tags:
+        - College
+  /api/colleges/{college}/restore:
+    post:
+      parameters:
+        - schema:
+            type: integer
+          name: college
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CollegeResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Restore college
+      tags:
+        - College
+  /api/majors:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Major'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MajorResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create major
+      tags:
+        - Major
+    get:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MajorResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of majors
+      tags:
+        - Major
+  /api/majors/search:
+    post:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - college_id
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - college_id
+                                - created_at
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MajorResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for majors
+      tags:
+        - Major
+  /api/majors/{major}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: major
+          in: path
+          required: true
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MajorResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get major
+      tags:
+        - Major
+    patch:
+      parameters:
+        - schema:
+            type: integer
+          name: major
+          in: path
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Major'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MajorResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Update major
+      tags:
+        - Major
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: major
+          in: path
+          required: true
+        - schema:
+            type: boolean
+          name: force
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MajorResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete major
+      tags:
+        - Major
+  /api/majors/{major}/restore:
+    post:
+      parameters:
+        - schema:
+            type: integer
+          name: major
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MajorResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Restore major
+      tags:
+        - Major
+  /api/subjects:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SubjectResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create subject
+      tags:
+        - Subject
+    get:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubjectResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of subjects
+      tags:
+        - Subject
+  /api/subjects/search:
+    post:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubjectResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for subjects
+      tags:
+        - Subject
+  /api/subjects/{subject}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: subject
+          in: path
+          required: true
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SubjectResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get subject
+      tags:
+        - Subject
+    patch:
+      parameters:
+        - schema:
+            type: integer
+          name: subject
+          in: path
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SubjectResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Update subject
+      tags:
+        - Subject
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: subject
+          in: path
+          required: true
+        - schema:
+            type: boolean
+          name: force
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SubjectResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete subject
+      tags:
+        - Subject
+  /api/subjects/{subject}/restore:
+    post:
+      parameters:
+        - schema:
+            type: integer
+          name: subject
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SubjectResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Restore subject
+      tags:
+        - Subject
+  /api/groups:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GroupResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create group
+      tags:
+        - Group
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of groups
+      tags:
+        - Group
+  /api/groups/search:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - created_at
+                          - major_id
+                          - join_year
+                          - division
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - created_at
+                                - major_id
+                                - join_year
+                                - division
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for groups
+      tags:
+        - Group
+  /api/groups/{group}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: group
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GroupResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get group
+      tags:
+        - Group
+  /api/groups/{group}/restore:
+    post:
+      parameters:
+        - schema:
+            type: integer
+          name: group
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/GroupResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Restore group
+      tags:
+        - Group
+  /api/groups/batch:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resources:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Group'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Create a batch of groups
+      tags:
+        - Group
+  /api/groups/batch/restore:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resources:
+                  type: array
+                  items:
+                    type: integer
+                    description: A list of resource IDs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Restore a batch of groups
+      tags:
+        - Group
+  /api/applies:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Apply'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApplyResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create group user apply
+      tags:
+        - Apply
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApplyResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of group user applies
+      tags:
+        - Apply
+  /api/applies/search:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - user_id
+                          - group_id
+                          - status_id
+                          - created_at
+                          - updated_at
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - user_id
+                                - group_id
+                                - status_id
+                                - created_at
+                                - updated_at
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApplyResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for group user applies
+      tags:
+        - Apply
+  /api/applies/{apply}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: apply
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApplyResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get group user apply
+      tags:
+        - Apply
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: apply
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApplyResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete group user apply
+      tags:
+        - Apply
+  /api/teaching:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Teaching'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TeachingResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create group subject user
+      tags:
+        - Teaching
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeachingResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of group subject user
+      tags:
+        - Teaching
+  /api/teaching/search:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - user_id
+                          - group_id
+                          - subject_id
+                          - created_at
+                          - updated_at
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - user_id
+                                - group_id
+                                - subject_id
+                                - created_at
+                                - updated_at
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeachingResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for group subject user
+      tags:
+        - Teaching
+  /api/teaching/{teaching}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: teaching
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TeachingResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get group subject user
+      tags:
+        - Teaching
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: teaching
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TeachingResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete group subject user
+      tags:
+        - Teaching
+  /api/teaching/batch:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resources:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Teaching'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeachingResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Create a batch of group subject user
+      tags:
+        - Teaching
+    delete:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resources:
+                  type: array
+                  items:
+                    type: integer
+                    description: A list of resource IDs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TeachingResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Delete a batch of group subject user
+      tags:
+        - Teaching
+  /api/books:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Book'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create book
+      tags:
+        - Book
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of books
+      tags:
+        - Book
+  /api/books/search:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - subject_id
+                          - group_id
+                          - is_practical
+                          - year
+                          - semester
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - subject_id
+                                - group_id
+                                - is_practical
+                                - year
+                                - semester
+                                - created_at
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for books
+      tags:
+        - Book
+  /api/books/{book}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: book
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get book
+      tags:
+        - Book
+    patch:
+      parameters:
+        - schema:
+            type: integer
+          name: book
+          in: path
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Book'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Update book
+      tags:
+        - Book
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: book
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete book
+      tags:
+        - Book
+  /api/assignments:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Assignment'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AssignmentResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create assignment
+      tags:
+        - Assignment
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AssignmentResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of assignments
+      tags:
+        - Assignment
+  /api/assignments/search:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - due_date
+                          - subject_id
+                          - group_id
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - due_date
+                                - subject_id
+                                - group_id
+                                - created_at
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AssignmentResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for assignments
+      tags:
+        - Assignment
+  /api/assignments/{assignment}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: assignment
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AssignmentResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get assignment
+      tags:
+        - Assignment
+    patch:
+      parameters:
+        - schema:
+            type: integer
+          name: assignment
+          in: path
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                due_date:
+                  type: string
+                  format: date-time
+                      
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AssignmentResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+      summary: Update assignment
+      tags:
+        - Assignment
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: assignment
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AssignmentResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete assignment
+      tags:
+        - Assignment
+  /api/deliveries:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Delivery'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeliveryResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Create assignment user
+      tags:
+        - Delivery
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliveryResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of assignment user
+      tags:
+        - Delivery
+  /api/deliveries/search:
+    post:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliveryResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for assignment user
+      tags:
+        - Delivery
+  /api/deliveries/{delivery}:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: delivery
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeliveryResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get assignment user
+      tags:
+        - Delivery
+    delete:
+      parameters:
+        - schema:
+            type: integer
+          name: delivery
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeliveryResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Delete assignment user
+      tags:
+        - Delivery
+  /api/users:
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of users
+      tags:
+        - User
+  /api/users/search:
+    post:
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - name
+                          - role_id
+                          - email_verified_at
+                          - email
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - name
+                                - role_id
+                                - email_verified_at
+                                - email
+                                - created_at
+                            operator:
+                              type: string
+                              enum:
+                                - <
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for users
+      tags:
+        - User
+  /api/users/{user}/roles/{role}:
+    post:
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: role
+          in: path
+          required: true
+          schema:
+            type: integer
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Change user role
+      tags:
+        - User
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Post:
+      title: Post
+      type: object
+      properties:
+        subject_id:
+          type: integer
+          nullable: true
+        taggable_type:
+          type: string
+          nullable: true
+        taggable_id:
+          type: integer
+          nullable: true
+        content:
+          type: string
+          nullable: true
+    PostResource:
+      title: PostResource
+      allOf:
+        - $ref: '#/components/schemas/Post'
+        - type: object
+          properties:
+            files:
+              type: array
+              items:
+                type: string
+        - type: object
+          properties:
+            id:
+              type: integer
+            user_id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+    College:
+      title: College
+      type: object
+      properties:
+        name:
+          type: string
+    CollegeResource:
+      title: CollegeResource
+      allOf:
+        - $ref: '#/components/schemas/College'
+        - type: object
+          properties:
+            id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+            deleted_at:
+              type: string
+              nullable: true
+    Major:
+      title: Major
+      type: object
+      properties:
+        name:
+          type: string
+        college_id:
+          type: integer
+        degree_id:
+          type: integer
+        years:
+          type: integer
+    MajorResource:
+      title: MajorResource
+      allOf:
+        - $ref: '#/components/schemas/Major'
+        - type: object
+          properties:
+            id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+            deleted_at:
+              type: string
+              nullable: true
+    Subject:
+      title: Subject
+      type: object
+      properties:
+        name:
+          type: string
+    SubjectResource:
+      title: SubjectResource
+      allOf:
+        - $ref: '#/components/schemas/Subject'
+        - type: object
+          properties:
+            id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+            deleted_at:
+              type: string
+              nullable: true
+    Group:
+      title: Group
+      type: object
+      properties:
+        join_year: {}
+        division:
+          type: string
+        major_id:
+          type: integer
+    GroupResource:
+      title: GroupResource
+      allOf:
+        - $ref: '#/components/schemas/Group'
+        - type: object
+          properties:
+            id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+    Apply:
+      title: Apply
+      type: object
+      properties:
+        group_id:
+          type: integer
+        status_id:
+          type: integer
+        note:
+          type: string
+          nullable: true
+    ApplyResource:
+      title: ApplyResource
+      allOf:
+        - $ref: '#/components/schemas/Apply'
+        - type: object
+          properties:
+            id:
+              type: integer
+            user_id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+    Teaching:
+      title: Teaching
+      type: object
+      properties:
+        user_id:
+          type: integer
+        group_id:
+          type: integer
+        subject_id:
+          type: integer
+    TeachingResource:
+      title: TeachingResource
+      allOf:
+        - $ref: '#/components/schemas/Teaching'
+    Book:
+      title: Book
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        subject_id:
+          type: integer
+          nullable: true
+        group_id:
+          type: integer
+          nullable: true
+        is_practical:
+          type: integer
+        year:
+          type: integer
+        semester:
+          type: integer
+    BookResource:
+      title: BookResource
+      allOf:
+        - $ref: '#/components/schemas/Book'
+        - type: object
+          properties:
+            id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+    Assignment:
+      title: Assignment
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        due_date:
+          type: string
+        subject_id:
+          type: integer
+          nullable: true
+        group_id:
+          type: integer
+          nullable: true
+    AssignmentResource:
+      title: AssignmentResource
+      allOf:
+        - $ref: '#/components/schemas/Assignment'
+        - type: object
+          properties:
+            id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+    Delivery:
+      title: Delivery
+      type: object
+      properties:
+        type:
+          type: string
+        content:
+          type: string
+        assignment_id:
+          type: integer
+    DeliveryResource:
+      title: DeliveryResource
+      allOf:
+        - $ref: '#/components/schemas/Delivery'
+        - type: object
+          properties:
+            user_id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+    ResourceLinks:
+      title: ResourceLinks
+      type: object
+      properties:
+        first:
+          type: string
+          format: uri
+        last:
+          type: string
+          format: uri
+        prev:
+          type: string
+          format: uri
+        next:
+          type: string
+          format: uri
+    ResourceMeta:
+      title: ResourceMeta
+      type: object
+      properties:
+        current_page:
+          type: integer
+        from:
+          type: integer
+        last_page:
+          type: integer
+        path:
+          type: string
+        per_page:
+          type: integer
+        to:
+          type: integer
+        total:
+          type: integer
+    User:
+      title: User
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        role_id:
+          type: integer
+    UserResource:
+      title: UserResource
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            id:
+              type: integer
+            email_verified_at:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+tags:
+  - name: User
+    description: API documentation for User
+  - name: Post
+    description: API documentation for Post
+  - name: College
+    description: API documentation for College
+  - name: Major
+    description: API documentation for Major
+  - name: Subject
+    description: API documentation for Subject
+  - name: Group
+    description: API documentation for Group
+  - name: Apply
+    description: API documentation for Apply
+  - name: Teaching
+    description: API documentation for Teaching
+  - name: Book
+    description: API documentation for Book
+  - name: Assignment
+    description: API documentation for Assignment
+  - name: Delivery
+    description: API documentation for Delivery
