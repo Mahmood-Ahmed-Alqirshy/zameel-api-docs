@@ -3,8 +3,8 @@ info:
   title: زميل
   version: 1.0.0
 servers:
-  - url: http://localhost/api
-    description: Default Environment
+  - url: http://https://api.zameel.mahmoudahmed.me/
+    description: Production Environment
 security:
   - BearerAuth: []
 paths:
@@ -51,6 +51,36 @@ paths:
                 password:
                   type: string
                 password_confirmation:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+        '401':
+          description: Unauthenticated
+        '422':
+          description: Validation error
+      summary: Create user
+      tags:
+        - Auth
+  /api/users/update-password:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                password:
+                  type: string
+                newPassword:
+                  type: string
+                newPassword_confirmation:
                   type: string
       responses:
         '200':
@@ -1413,43 +1443,6 @@ paths:
       summary: Create a batch of groups
       tags:
         - Group
-  /api/groups/batch/restore:
-    post:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                resources:
-                  type: array
-                  items:
-                    type: integer
-                    description: A list of resource IDs
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/GroupResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-        '422':
-          description: Validation error
-      summary: Restore a batch of groups
-      tags:
-        - Group
   /api/applies:
     post:
       parameters: []
@@ -2190,6 +2183,143 @@ paths:
       summary: Delete book
       tags:
         - Book
+  /api/books/{book}/summary:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: book
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      book_id:
+                        type: integer
+                      content:
+                        type: string
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get book
+      tags:
+        - Book
+  /api/books/{book}/quiz:
+    get:
+      parameters:
+        - schema:
+            type: integer
+          name: book
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      book_id:
+                        type: integer
+                      content:
+                        type: string
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get book
+      tags:
+        - Book
+  /api/members:
+    get:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MemberResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get a list of colleges
+      tags:
+        - Member
+  /api/members/search:
+    post:
+      parameters:
+        - schema:
+            type: boolean
+          name: with_trashed
+          in: query
+        - schema:
+            type: boolean
+          name: only_trashed
+          in: query
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MemberResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Search for colleges
+      tags:
+        - Member
+
   /api/assignments:
     post:
       parameters: []
@@ -3005,6 +3135,12 @@ components:
           type: string
         assignment_id:
           type: integer
+    Member:
+      title: Delivery
+      type: object
+      properties:
+        is_representer:
+          type: boolean
     DeliveryResource:
       title: DeliveryResource
       allOf:
@@ -3012,6 +3148,24 @@ components:
         - type: object
           properties:
             user_id:
+              type: integer
+            created_at:
+              type: string
+              nullable: true
+              format: date-time
+            updated_at:
+              type: string
+              nullable: true
+              format: date-time
+    MemberResource:
+      title: DeliveryResource
+      allOf:
+        - $ref: '#/components/schemas/Member'
+        - type: object
+          properties:
+            user_id:
+              type: integer
+            group_id:
               type: integer
             created_at:
               type: string
@@ -3107,3 +3261,5 @@ tags:
     description: API documentation for Assignment
   - name: Delivery
     description: API documentation for Delivery
+  - name: Member
+    description: API documentation for Member
