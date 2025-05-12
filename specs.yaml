@@ -3,7 +3,7 @@ info:
   title: زميل
   version: 1.0.0
 servers:
-  - url: http://https://api.zameel.mahmoudahmed.me/
+  - url: https://api.zameel.mahmoudahmed.me/
     description: Production Environment
 security:
   - BearerAuth: []
@@ -1944,7 +1944,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Book'
+              allOf:
+                - $ref: '#/components/schemas/Book'
+                - type: object
+                  properties:
+                    is_arabic:
+                      type: boolean
+
       responses:
         '201':
           description: OK
@@ -2721,6 +2727,27 @@ paths:
         '403':
           description: Unauthorized
       summary: Get a list of users
+      tags:
+        - User
+  /api/users/me:
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get current user data
       tags:
         - User
   /api/users/search:
