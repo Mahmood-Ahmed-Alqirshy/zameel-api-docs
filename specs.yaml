@@ -8,6 +8,56 @@ servers:
 security:
   - BearerAuth: []
 paths:
+
+  /notifications:
+    get:
+      parameters:
+        - in: query
+          name: interest
+          required: true
+          schema:
+            type: string
+          description: Interest key to filter notifications (required)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        title:
+                          type: string
+                        content:
+                          type: string
+                          nullable: true
+                        interests:
+                          type: array
+                          items:
+                            type: string
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      summary: Get notifications filtered by interest
+      tags:
+        - Notification
+  
   /api/login:
     post:
       requestBody:
@@ -238,6 +288,348 @@ paths:
       summary: Reset password
       tags:
         - Auth
+  
+  /api/posts/deleted:
+    get:
+      summary: Get soft-deleted posts (cursor pagination)
+      tags:
+        - Post
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            description: Datetime cursor in "Y-m-d H:i:s" format (validated server-side). Defaults to now.
+      responses:
+        '200':
+          description: OK — list of deleted posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+  paths:
+  /api/majors/groups:
+    get:
+      summary: Get majors with recent groups (filtered by education year)
+      tags:
+        - Major
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: OK — list of majors with filtered groups relation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/MajorResource'
+                        - type: object
+                          properties:
+                            groups:
+                              type: array
+                              items:
+                                $ref: '#/components/schemas/GroupResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+
+  
+  /api/groups/{group}/applies:
+    get:
+      summary: Get applies for a group
+      tags:
+        - Apply
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+      responses:
+        '200':
+          description: OK — list of applies for the group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApplyResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+
+    post:
+      summary: Create an apply for a group
+      tags:
+        - Apply
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Apply'
+      responses:
+        '201':
+          description: Apply created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApplyResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+
+  /api/groups/{group}/applies/search:
+    post:
+      summary: Search applies within a group
+      tags:
+        - Apply
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - user_id
+                          - status_id
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - <
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK — search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApplyResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+
+  /api/groups/{group}/applies/{apply}:
+    get:
+      summary: Get a specific apply for a group
+      tags:
+        - Apply
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: apply
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ApplyResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+    delete:
+      summary: Delete an apply from a group
+      tags:
+        - Apply
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: apply
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Apply deleted
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+  /api/applies/{apply}/accept:
+    post:
+      summary: Accept a group apply
+      tags:
+        - Apply
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: apply
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Apply ID
+      responses:
+        '200':
+          description: Apply accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: ok.
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+  /api/applies/{apply}/reject:
+    post:
+      summary: Reject a group apply (optionally update note)
+      tags:
+        - Apply
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: apply
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Apply ID
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  description: Optional rejection note (max 255 chars)
+      responses:
+        '200':
+          description: Apply rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: ok.
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
   /api/posts:
     get:
       parameters:
@@ -1423,33 +1815,7 @@ paths:
       summary: Get group
       tags:
         - Group
-  /api/groups/{group}/restore:
-    post:
-      parameters:
-        - schema:
-            type: integer
-          name: group
-          in: path
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/GroupResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-      summary: Restore group
-      tags:
-        - Group
+  
   /api/groups/batch:
     post:
       parameters: []
@@ -1486,500 +1852,7 @@ paths:
       summary: Create a batch of groups
       tags:
         - Group
-  /api/applies:
-    post:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Apply'
-      responses:
-        '201':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/ApplyResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '422':
-          description: Validation error
-      summary: Create group user apply
-      tags:
-        - Apply
-    get:
-      parameters: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ApplyResource'
-                  links:
-                    $ref: '#/components/schemas/ResourceLinks'
-                  meta:
-                    $ref: '#/components/schemas/ResourceMeta'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-      summary: Get a list of group user applies
-      tags:
-        - Apply
-  /api/applies/search:
-    post:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                filters:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      type:
-                        type: string
-                        enum:
-                          - and
-                          - or
-                      field:
-                        type: string
-                        enum:
-                          - user_id
-                          - group_id
-                          - status_id
-                          - created_at
-                          - updated_at
-                      operator:
-                        type: string
-                        enum:
-                          - <
-                          - <=
-                          - '>'
-                          - '>='
-                          - '='
-                          - '!='
-                          - like
-                          - not like
-                          - ilike
-                          - not ilike
-                          - in
-                          - not in
-                          - all in
-                          - any in
-                      value:
-                        type: string
-                      nested:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            type:
-                              type: string
-                              enum:
-                                - and
-                                - or
-                            field:
-                              type: string
-                              enum:
-                                - user_id
-                                - group_id
-                                - status_id
-                                - created_at
-                                - updated_at
-                            operator:
-                              type: string
-                              enum:
-                                - <
-                                - <=
-                                - '>'
-                                - '>='
-                                - '='
-                                - '!='
-                                - like
-                                - not like
-                                - ilike
-                                - not ilike
-                                - in
-                                - not in
-                                - all in
-                                - any in
-                            value:
-                              type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ApplyResource'
-                  links:
-                    $ref: '#/components/schemas/ResourceLinks'
-                  meta:
-                    $ref: '#/components/schemas/ResourceMeta'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-      summary: Search for group user applies
-      tags:
-        - Apply
-  /api/applies/{apply}:
-    get:
-      parameters:
-        - schema:
-            type: integer
-          name: apply
-          in: path
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/ApplyResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-      summary: Get group user apply
-      tags:
-        - Apply
-    delete:
-      parameters:
-        - schema:
-            type: integer
-          name: apply
-          in: path
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/ApplyResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-      summary: Delete group user apply
-      tags:
-        - Apply
-  /api/teaching:
-    post:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Teaching'
-      responses:
-        '201':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/TeachingResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '422':
-          description: Validation error
-      summary: Create group subject user
-      tags:
-        - Teaching
-    get:
-      parameters: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TeachingResource'
-                  links:
-                    $ref: '#/components/schemas/ResourceLinks'
-                  meta:
-                    $ref: '#/components/schemas/ResourceMeta'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-      summary: Get a list of group subject user
-      tags:
-        - Teaching
-  /api/teaching/search:
-    post:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                filters:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      type:
-                        type: string
-                        enum:
-                          - and
-                          - or
-                      field:
-                        type: string
-                        enum:
-                          - user_id
-                          - group_id
-                          - subject_id
-                          - created_at
-                          - updated_at
-                      operator:
-                        type: string
-                        enum:
-                          - <
-                          - <=
-                          - '>'
-                          - '>='
-                          - '='
-                          - '!='
-                          - like
-                          - not like
-                          - ilike
-                          - not ilike
-                          - in
-                          - not in
-                          - all in
-                          - any in
-                      value:
-                        type: string
-                      nested:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            type:
-                              type: string
-                              enum:
-                                - and
-                                - or
-                            field:
-                              type: string
-                              enum:
-                                - user_id
-                                - group_id
-                                - subject_id
-                                - created_at
-                                - updated_at
-                            operator:
-                              type: string
-                              enum:
-                                - <
-                                - <=
-                                - '>'
-                                - '>='
-                                - '='
-                                - '!='
-                                - like
-                                - not like
-                                - ilike
-                                - not ilike
-                                - in
-                                - not in
-                                - all in
-                                - any in
-                            value:
-                              type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TeachingResource'
-                  links:
-                    $ref: '#/components/schemas/ResourceLinks'
-                  meta:
-                    $ref: '#/components/schemas/ResourceMeta'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-      summary: Search for group subject user
-      tags:
-        - Teaching
-  /api/teaching/{teaching}:
-    get:
-      parameters:
-        - schema:
-            type: integer
-          name: teaching
-          in: path
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/TeachingResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-      summary: Get group subject user
-      tags:
-        - Teaching
-    delete:
-      parameters:
-        - schema:
-            type: integer
-          name: teaching
-          in: path
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/TeachingResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-      summary: Delete group subject user
-      tags:
-        - Teaching
-  /api/teaching/batch:
-    post:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                resources:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/Teaching'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TeachingResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-        '422':
-          description: Validation error
-      summary: Create a batch of group subject user
-      tags:
-        - Teaching
-    delete:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                resources:
-                  type: array
-                  items:
-                    type: integer
-                    description: A list of resource IDs
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TeachingResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-        '422':
-          description: Validation error
-      summary: Delete a batch of group subject user
-      tags:
-        - Teaching
+  
   /api/books:
     post:
       parameters: []
@@ -2300,20 +2173,23 @@ paths:
       summary: Get book
       tags:
         - Book
-  /api/members:
+  /api/groups/{group}/members/:
     get:
+      summary: Get members of a group
+      tags:
+        - Member
+      security:
+        - BearerAuth: []
       parameters:
-        - schema:
-            type: boolean
-          name: with_trashed
-          in: query
-        - schema:
-            type: boolean
-          name: only_trashed
-          in: query
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
       responses:
         '200':
-          description: OK
+          description: OK — list of group members
           content:
             application/json:
               schema:
@@ -2323,28 +2199,320 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/MemberResource'
-                  links:
-                    $ref: '#/components/schemas/ResourceLinks'
-                  meta:
-                    $ref: '#/components/schemas/ResourceMeta'
         '401':
           description: Unauthenticated
         '403':
           description: Unauthorized
-      summary: Get a list of colleges
+  /api/books/deleted:
+    get:
+      summary: Get soft-deleted books (cursor pagination)
       tags:
-        - Member
-  /api/members/search:
+        - Book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Datetime cursor in "Y-m-d H:i:s" format. Defaults to now.
+      responses:
+        '200':
+          description: OK — list of deleted books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+  /api/chat/create:
     post:
+      summary: Create assistant chat
+      tags:
+        - AssistantChat
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                books:
+                  type: array
+                  items:
+                    type: integer
+                  description: Optional list of book IDs to seed the chat
+      responses:
+        '200':
+          description: Chat created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+
+  /api/chat/{chat}:
+    post:
+      summary: Send message to assistant for a chat (async)
+      tags:
+        - AssistantChat
+      security:
+        - BearerAuth: []
       parameters:
-        - schema:
-            type: boolean
-          name: with_trashed
+        - name: chat
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Assistant chat ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Message payload to send to the assistant
+              required:
+                - message
+      responses:
+        '202':
+          description: Message accepted for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: ok
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+  /api/assignments/deleted:
+    get:
+      summary: Get soft-deleted assignments (cursor pagination)
+      tags:
+        - Assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cursor
           in: query
-        - schema:
-            type: boolean
-          name: only_trashed
-          in: query
+          required: false
+          schema:
+            type: string
+          description: Datetime cursor in "Y-m-d H:i:s" format. Defaults to now.
+      responses:
+        '200':
+          description: OK — list of deleted assignments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AssignmentResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+
+  /api/assignments/{assignment}/deliveries:
+    get:
+      summary: Get deliveries for an assignment
+      tags:
+        - Delivery
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: assignment
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Assignment ID
+      responses:
+        '200':
+          description: OK — list of deliveries for the assignment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliveryResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+
+    post:
+      summary: Create a delivery for an assignment
+      tags:
+        - Delivery
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: assignment
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Assignment ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Delivery'
+      responses:
+        '201':
+          description: Delivery created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeliveryResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '409':
+          description: Conflict — delivery exists
+        '422':
+          description: Validation error
+
+  /api/assignments/{assignment}/deliveries/search:
+    post:
+      summary: Search deliveries within an assignment
+      tags:
+        - Delivery
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: assignment
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Assignment ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - user_id
+                          - assignment_id
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - '<'
+                          - '<='
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - in
+                          - not in
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK — search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliveryResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+
+  /api/assignments/{assignment}/deliveries/{delivery}:
+    get:
+      summary: Get a specific delivery for an assignment
+      tags:
+        - Delivery
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: assignment
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: delivery
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
@@ -2354,9 +2522,108 @@ paths:
                 type: object
                 properties:
                   data:
+                    $ref: '#/components/schemas/DeliveryResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+    delete:
+      summary: Delete a delivery from an assignment
+      tags:
+        - Delivery
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: assignment
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: delivery
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Delivery deleted
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+  /api/groups/{group}/assignments:
+    post:
+      summary: Create an assignment for a group
+      tags:
+        - Assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/Assignment'
+                - type: object
+                  properties:
+                    due_date:
+                      type: string
+                      format: date-time
+      responses:
+        '201':
+          description: Assignment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AssignmentResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+    get:
+      summary: Get assignments for a group
+      tags:
+        - Assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+      responses:
+        '200':
+          description: OK — list of assignments for the group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/MemberResource'
+                      $ref: '#/components/schemas/AssignmentResource'
                   links:
                     $ref: '#/components/schemas/ResourceLinks'
                   meta:
@@ -2365,10 +2632,575 @@ paths:
           description: Unauthenticated
         '403':
           description: Unauthorized
-      summary: Search for colleges
+
+  /api/groups/{group}/assignments/search:
+    post:
+      summary: Search assignments within a group
+      tags:
+        - Assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - due_date
+                          - subject_id
+                          - group_id
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - '<'
+                          - '<='
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK — search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AssignmentResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+
+  /api/groups/{group}/assignments/{assignment}:
+    get:
+      summary: Get specific assignment for a group
+      tags:
+        - Assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assignment
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AssignmentResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+    delete:
+      summary: Delete an assignment from a group
+      tags:
+        - Assignment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assignment
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+  /api/groups/{group}/books:
+    get:
+      summary: Get books for a group
+      tags:
+        - Book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter books by year (optional)
+      responses:
+        '200':
+          description: OK — list of books for the group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+
+  /api/groups/{group}/books/search:
+    post:
+      summary: Search books within a group
+      tags:
+        - Book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - subject_id
+                          - year
+                          - is_practical
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - '<'
+                          - '<='
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - in
+                          - any in
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK — search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+
+  /api/groups/{group}/books/{book}:
+    get:
+      summary: Get a specific book for a group
+      tags:
+        - Book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: book
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BookResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+    delete:
+      summary: Delete a book from a group
+      tags:
+        - Book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: book
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+  /api/groups/{group}/members/{user}:
+    patch:
+      summary: Update pivot data for a group member (e.g. representer flag)
       tags:
         - Member
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_representer:
+                  type: boolean
+      responses:
+        '200':
+          description: Member updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Validation error
+    post:
+      summary: Attach a user to a group (add member)
+      tags:
+        - Member
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID to attach
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_representer:
+                  type: boolean
+                  description: "Optional: mark user as representer in the group"
+      responses:
+        '201':
+          description: User attached to group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
 
+    delete:
+      summary: Detach a user from a group (remove member)
+      tags:
+        - Member
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID to detach
+      responses:
+        '200':
+          description: User detached from group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+
+  /api/groups/{group}/teachers/:
+    get:
+      summary: Get teachers of a group (includes subject from pivot)
+      tags:
+        - Teacher
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+      responses:
+        '200':
+          description: OK — list of teachers with subject info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/UserResource'
+                        - type: object
+                          properties:
+                            subject:
+                              $ref: '#/components/schemas/Subject'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+
+  /api/groups/{group}/teachers/{user}:
+    post:
+      summary: Attach a teacher to a group (assign subject)
+      tags:
+        - Teacher
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID to attach as teacher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject_id:
+                  type: integer
+                  description: Subject ID to assign (required)
+              required:
+                - subject_id
+      responses:
+        '201':
+          description: Teacher attached to group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
+
+    delete:
+      summary: Detach a teacher from a group (remove assignment)
+      tags:
+        - Teacher
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Group ID
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID to detach
+      responses:
+        '200':
+          description: Teacher detached from group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UserResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+    
   /api/assignments:
     post:
       parameters: []
@@ -2615,137 +3447,7 @@ paths:
       summary: Delete assignment
       tags:
         - Assignment
-  /api/deliveries:
-    post:
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Delivery'
-      responses:
-        '201':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/DeliveryResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '422':
-          description: Validation error
-      summary: Create assignment user
-      tags:
-        - Delivery
-    get:
-      parameters: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/DeliveryResource'
-                  links:
-                    $ref: '#/components/schemas/ResourceLinks'
-                  meta:
-                    $ref: '#/components/schemas/ResourceMeta'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-      summary: Get a list of assignment user
-      tags:
-        - Delivery
-  /api/deliveries/search:
-    post:
-      parameters: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/DeliveryResource'
-                  links:
-                    $ref: '#/components/schemas/ResourceLinks'
-                  meta:
-                    $ref: '#/components/schemas/ResourceMeta'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-      summary: Search for assignment user
-      tags:
-        - Delivery
-  /api/deliveries/{delivery}:
-    get:
-      parameters:
-        - schema:
-            type: integer
-          name: delivery
-          in: path
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/DeliveryResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-      summary: Get assignment user
-      tags:
-        - Delivery
-    delete:
-      parameters:
-        - schema:
-            type: integer
-          name: delivery
-          in: path
-          required: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/DeliveryResource'
-        '401':
-          description: Unauthenticated
-        '403':
-          description: Unauthorized
-        '404':
-          description: Resource not found
-      summary: Delete assignment user
-      tags:
-        - Delivery
+  
   /api/users:
     get:
       parameters: []
@@ -2793,6 +3495,173 @@ paths:
       summary: Get current user data
       tags:
         - User
+  /api/users/me/groups:
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GroupResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+      summary: Get groups for current user
+      tags:
+        - Group
+
+  /api/colleges/{college}/majors:
+    get:
+      summary: Get majors for a college
+      tags:
+        - College
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: college
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: College ID
+      responses:
+        '200':
+          description: OK — list of majors for the college
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MajorResource'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+
+  /api/colleges/{college}/majors/search:
+    post:
+      summary: Search majors within a college
+      tags:
+        - College
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: college
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: College ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - and
+                          - or
+                      field:
+                        type: string
+                        enum:
+                          - name
+                          - college_id
+                          - created_at
+                      operator:
+                        type: string
+                        enum:
+                          - < 
+                          - <=
+                          - '>'
+                          - '>='
+                          - '='
+                          - '!='
+                          - like
+                          - not like
+                          - ilike
+                          - not ilike
+                          - in
+                          - not in
+                          - all in
+                          - any in
+                      value:
+                        type: string
+                      nested:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum:
+                                - and
+                                - or
+                            field:
+                              type: string
+                              enum:
+                                - name
+                                - college_id
+                                - created_at
+                            operator:
+                              type: string
+                              enum:
+                                - < 
+                                - <=
+                                - '>'
+                                - '>='
+                                - '='
+                                - '!='
+                                - like
+                                - not like
+                                - ilike
+                                - not ilike
+                                - in
+                                - not in
+                                - all in
+                                - any in
+                            value:
+                              type: string
+      responses:
+        '200':
+          description: OK — search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MajorResource'
+                  links:
+                    $ref: '#/components/schemas/ResourceLinks'
+                  meta:
+                    $ref: '#/components/schemas/ResourceMeta'
+        '401':
+          description: Unauthenticated
+        '403':
+          description: Unauthorized
+        '422':
+          description: Validation error
   /api/users/search:
     post:
       parameters: []
@@ -2899,6 +3768,7 @@ paths:
       summary: Search for users
       tags:
         - User
+  
   /api/users/{user}/roles/{role}:
     post:
       parameters:
@@ -3323,8 +4193,6 @@ tags:
     description: API documentation for Group
   - name: Apply
     description: API documentation for Apply
-  - name: Teaching
-    description: API documentation for Teaching
   - name: Book
     description: API documentation for Book
   - name: Assignment
